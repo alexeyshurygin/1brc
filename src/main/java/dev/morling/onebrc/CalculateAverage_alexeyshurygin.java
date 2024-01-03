@@ -77,16 +77,6 @@ public class CalculateAverage_alexeyshurygin {
         }
     }
 
-    private static void readIOFile(String filename) throws IOException {
-        try (var io = new FileInputStream(filename)) {
-            var bytes = new byte[1024 * 1024];
-            int total = 0;
-            for (int i = 0; i >= 0; i = io.read(bytes)) {
-                total += i;
-            }
-        }
-    }
-
     private static void readFRFile(String filename) throws IOException {
         try (var io = new FileReader(filename, StandardCharsets.UTF_8)) {
             var chars = new char[1024 * 1024];
@@ -101,6 +91,16 @@ public class CalculateAverage_alexeyshurygin {
         lines(Paths.get(filename))
             .forEach(s -> {
             });
+    }
+
+    private static void readIOFile(String filename) throws IOException {
+        try (var io = new FileInputStream(filename)) {
+            var bytes = new byte[1024 * 1024];
+            int total = 0;
+            for (int i = 0; i >= 0; i = io.read(bytes)) {
+                total += i;
+            }
+        }
     }
 
     public static void main(String[] args) throws IOException {
