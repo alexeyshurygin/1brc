@@ -38,7 +38,7 @@ import static java.nio.file.Files.lines;
 
 public class CalculateAverage_alexeyshurygin {
 
-    private static final String FILE = "./measurements_short.txt";
+    private static final String FILE = "./measurements.txt";
 
     private static void readCharFile(String filename) throws IOException {
         try (var channel = FileChannel.open(Path.of(filename))) {
@@ -198,7 +198,8 @@ public class CalculateAverage_alexeyshurygin {
     }
 
     private static void printResults(Map<ArrayWrapper, Integer> min, Map<ArrayWrapper, Integer> max, Map<ArrayWrapper, Double> mean, Map<ArrayWrapper, Integer> count) {
-        final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream().collect(Collectors.toMap(k -> new String(k.a, 0, k.length, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
+        final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream()
+            .collect(Collectors.toMap(k -> new String(k.a, 0, k.length, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
         System.out.print("{");
         final String last = sorted.lastKey();
         sorted.forEach((s, k) -> {
