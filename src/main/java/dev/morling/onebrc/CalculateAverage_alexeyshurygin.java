@@ -22,6 +22,9 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.min;
@@ -94,32 +97,63 @@ public class CalculateAverage_alexeyshurygin {
     }
 
     private static void readIOFile(String filename) throws IOException {
-        try (var io = new FileInputStream(filename)) {
-            var bytes = new byte[1024 * 1024];
+        Map<byte[], Integer> avg = new HashMap<>();
+        Map<byte[], Integer> min = new HashMap<>();
+        Map<byte[], Integer> max = new HashMap<>();
+        try (var is = new FileInputStream(filename)) {
+            int b;
             int total = 0;
-            for (int i = 0; i >= 0; i = io.read(bytes)) {
-                total += i;
-                processBuffer(bytes, i);
+            int neg = 1;
+            int l = 0;
+            int temp = 0;
+            int i = 0;
+            int start = 0;
+            int end = 0;
+            int bi = 0;
+            byte[] buf = new byte[100];
+            boolean pastSemi = false;
+            while ((b = is.read()) != -1) {
+                switch (b) {
+                    case ';' -> {
+                        temp = 0;
+                        pastSemi = true;
+                    }
+                    case '-' -> neg = -1;
+                    case '\n' -> {
+                        //todo do stuff here
+                        temp *= neg;
+                        final byte[] key = Arrays.copyOf(buf, bi);
+                        avg.merge(key, temp, Integer::sum);
+                        min.merge(key, temp, Integer::min);
+                        max.merge(key, temp, Integer::max);
+                        bi = 0;
+                        pastSemi = false;
+                        l++;
+                        neg = 1;
+                    }
+//                    case '\r' -> l++;
+//                    case '.' -> {
+//                    }
+                    default -> {
+                        if (pastSemi) {
+                            temp = temp * 10 + b - '0';
+                        } else {
+                            buf[bi++] = (byte) b;
+                        }
+                    }
+                }
+                i++;
             }
         }
-    }
-
-    private static int processBuffer(byte[] b, int l) {
-        for (int i = 0; i < l; i++) {
-            if (b[i] == '\n') {
-                return i + 1;
-            }
-        }
-        return 0;
     }
 
     public static void main(String[] args) throws IOException {
         long s = System.currentTimeMillis();
-//         readFileSimple(FILE);
+        // readFileSimple(FILE);
         // readCharFile(FILE);
         // readBBFile(FILE);
         readIOFile(FILE);
-//        readFRFile(FILE);
+        // readFRFile(FILE);
         long e = System.currentTimeMillis();
         System.out.println("Time: " + (e - s) + " ms");
     }
