@@ -99,8 +99,18 @@ public class CalculateAverage_alexeyshurygin {
             int total = 0;
             for (int i = 0; i >= 0; i = io.read(bytes)) {
                 total += i;
+                processBuffer(bytes, i);
             }
         }
+    }
+
+    private static int processBuffer(byte[] b, int l) {
+        for (int i = 0; i < l; i++) {
+            if (b[i] == '\n') {
+                return i + 1;
+            }
+        }
+        return 0;
     }
 
     public static void main(String[] args) throws IOException {
