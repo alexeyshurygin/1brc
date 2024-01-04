@@ -38,7 +38,7 @@ import static java.nio.file.Files.lines;
 
 public class CalculateAverage_alexeyshurygin {
 
-    private static final String FILE = "./measurements.txt";
+    private static final String FILE = "./measurements_short.txt";
 
     private static void readCharFile(String filename) throws IOException {
         try (var channel = FileChannel.open(Path.of(filename))) {
@@ -48,12 +48,11 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize).asCharBuffer();
-                for (int i = 0; i < buf.remaining();) {
+                for (int i = 0; i < buf.remaining(); ) {
                     if (buf.remaining() >= chars.length) {
                         buf.get(chars, 0, chars.length);
                         i += chars.length;
-                    }
-                    else {
+                    } else {
                         var chars1 = new char[buf.remaining()];
                         buf.get(chars1, 0, chars1.length);
                         i += chars1.length;
@@ -72,12 +71,11 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize);
-                for (int i = 0; i < buf.remaining();) {
+                for (int i = 0; i < buf.remaining(); ) {
                     if (buf.remaining() >= bytes.length) {
                         buf.get(bytes, 0, bytes.length);
                         i += bytes.length;
-                    }
-                    else {
+                    } else {
                         var bytes1 = new byte[buf.remaining()];
                         buf.get(bytes1, 0, bytes1.length);
                         i += bytes1.length;
@@ -100,8 +98,8 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void readFileSimple(String filename) throws IOException {
         lines(Paths.get(filename))
-                .forEach(s -> {
-                });
+            .forEach(s -> {
+            });
     }
 
     static class ArrayWrapper {
@@ -134,11 +132,6 @@ public class CalculateAverage_alexeyshurygin {
                 case 1 -> 31 + (int) a[0];
                 default -> ArraysSupport.vectorizedHashCode(a, 0, length, 1, ArraysSupport.T_BYTE);
             };
-        }
-
-        @Override
-        public String toString() {
-            return "ArrayWrapper: " + wrapperToString(this);
         }
     }
 
@@ -191,23 +184,21 @@ public class CalculateAverage_alexeyshurygin {
                         default -> {
                             if (!pastSemi) {
                                 nameBuf[nameLength++] = (byte) b;
-                            }
-                            else {
+                            } else {
                                 temp = temp * 10 + b - '0';
                             }
                         }
                     }
                     i++;
                 }
-                System.out.println("Lines:" + l + ", keys:" + count.size());
+                // System.out.println("Lines:" + l + ", keys:" + count.size());
             }
         }
         printResults(min, max, mean, count);
     }
 
     private static void printResults(Map<ArrayWrapper, Integer> min, Map<ArrayWrapper, Integer> max, Map<ArrayWrapper, Double> mean, Map<ArrayWrapper, Integer> count) {
-        final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream()
-                .collect(Collectors.toMap(k -> wrapperToString(k), k -> k, (a, b) -> b, TreeMap::new));
+        final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream().collect(Collectors.toMap(k -> new String(k.a, 0, k.length, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
         System.out.print("{");
         final String last = sorted.lastKey();
         sorted.forEach((s, k) -> {
@@ -215,7 +206,7 @@ public class CalculateAverage_alexeyshurygin {
             System.out.print("=");
             System.out.print((double) min.get(k) / 10);
             System.out.print("/");
-            System.out.print(Math.round(mean.get(k) / count.get(k)) / 10);
+            System.out.print((double) Math.round(mean.get(k) / count.get(k)) / 10);
             System.out.print("/");
             System.out.print((double) max.get(k) / 10);
             System.out.print("/");
@@ -223,11 +214,6 @@ public class CalculateAverage_alexeyshurygin {
                 System.out.print(", ");
         });
         System.out.println("}");
-    }
-
-    private static String wrapperToString(ArrayWrapper k) {
-        // inline
-        return new String(k.a, 0, k.length, Charset.forName("UTF-8"));
     }
 
     public static void main(String[] args) throws IOException {
