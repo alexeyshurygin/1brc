@@ -15,6 +15,8 @@
  */
 package dev.morling.onebrc;
 
+import jdk.internal.util.ArraysSupport;
+
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -25,7 +27,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -47,11 +48,12 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize).asCharBuffer();
-                for (int i = 0; i < buf.remaining(); ) {
+                for (int i = 0; i < buf.remaining();) {
                     if (buf.remaining() >= chars.length) {
                         buf.get(chars, 0, chars.length);
                         i += chars.length;
-                    } else {
+                    }
+                    else {
                         var chars1 = new char[buf.remaining()];
                         buf.get(chars1, 0, chars1.length);
                         i += chars1.length;
@@ -70,11 +72,12 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize);
-                for (int i = 0; i < buf.remaining(); ) {
+                for (int i = 0; i < buf.remaining();) {
                     if (buf.remaining() >= bytes.length) {
                         buf.get(bytes, 0, bytes.length);
                         i += bytes.length;
-                    } else {
+                    }
+                    else {
                         var bytes1 = new byte[buf.remaining()];
                         buf.get(bytes1, 0, bytes1.length);
                         i += bytes1.length;
@@ -97,23 +100,21 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void readFileSimple(String filename) throws IOException {
         lines(Paths.get(filename))
-            .forEach(s -> {
-            });
+                .forEach(s -> {
+                });
     }
 
     static class ArrayWrapper {
 
-        byte[] a;
-
-        public ArrayWrapper() {
-        }
+        final byte[] a;
+        int length;
 
         public ArrayWrapper(byte[] a) {
             this.a = a;
         }
 
-        void setArray(byte[] a) {
-            this.a = a;
+        void setLength(int length) {
+            this.length = length;
         }
 
         @Override
@@ -123,12 +124,21 @@ public class CalculateAverage_alexeyshurygin {
             if (o == null || getClass() != o.getClass())
                 return false;
             final ArrayWrapper that = (ArrayWrapper) o;
-            return Arrays.equals(a, that.a);
+            return Arrays.equals(a, 0, length, that.a, 0, that.length);
         }
 
         @Override
         public int hashCode() {
-            return Arrays.hashCode(a);
+            return switch (length) {
+                case 0 -> 1;
+                case 1 -> 31 + (int) a[0];
+                default -> ArraysSupport.vectorizedHashCode(a, 0, length, 1, ArraysSupport.T_BYTE);
+            };
+        }
+
+        @Override
+        public String toString() {
+            return "ArrayWrapper: " + wrapperToString(this);
         }
     }
 
@@ -142,12 +152,12 @@ public class CalculateAverage_alexeyshurygin {
             int l = 0;
             int temp = 0;
             int i = 0;
-            int bi = 0;
-            byte[] buf = new byte[4*1024];
+            int nameLength = 0;
+            byte[] buf = new byte[4 * 1024];
             int read;
             byte[] nameBuf = new byte[100];
             boolean pastSemi = false;
-            var key = new ArrayWrapper();
+            var key = new ArrayWrapper(nameBuf);
             while ((read = is.read(buf)) != -1) {
                 for (int pos = 0; pos < read; pos++) {
                     int b = buf[pos];
@@ -158,16 +168,19 @@ public class CalculateAverage_alexeyshurygin {
                         }
                         case '-' -> neg = -1;
                         case '\n' -> {
-                            temp *= neg;
-                            key.setArray(Arrays.copyOf(nameBuf, bi));
-                            final var c = count.merge(key, 1, Integer::sum);
-                            mean.merge(key, (double) temp, Double::sum);
-                            min.merge(key, temp, Integer::min);
-                            max.merge(key, temp, Integer::max);
-                            if (c == 1) {
-                                key = new ArrayWrapper();
+                            if (nameLength > 0) {
+                                temp *= neg;
+                                key.setLength(nameLength);
+                                final var c = count.merge(key, 1, Integer::sum);
+                                mean.merge(key, (double) temp, Double::sum);
+                                min.merge(key, temp, Integer::min);
+                                max.merge(key, temp, Integer::max);
+                                if (c == 1) {
+                                    nameBuf = new byte[100];
+                                    key = new ArrayWrapper(nameBuf);
+                                }
+                                nameLength = 0;
                             }
-                            bi = 0;
                             pastSemi = false;
                             l++;
                             neg = 1;
@@ -176,16 +189,17 @@ public class CalculateAverage_alexeyshurygin {
                         // case '.' -> {
                         // }
                         default -> {
-                            if (pastSemi) {
+                            if (!pastSemi) {
+                                nameBuf[nameLength++] = (byte) b;
+                            }
+                            else {
                                 temp = temp * 10 + b - '0';
-                            } else {
-                                nameBuf[bi++] = (byte) b;
                             }
                         }
                     }
                     i++;
                 }
-                // System.out.println("Lines:" + l + ", keys:" + count.size());
+                System.out.println("Lines:" + l + ", keys:" + count.size());
             }
         }
         printResults(min, max, mean, count);
@@ -193,7 +207,7 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void printResults(Map<ArrayWrapper, Integer> min, Map<ArrayWrapper, Integer> max, Map<ArrayWrapper, Double> mean, Map<ArrayWrapper, Integer> count) {
         final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream()
-            .collect(Collectors.toMap(k -> new String(k.a, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
+                .collect(Collectors.toMap(k -> wrapperToString(k), k -> k, (a, b) -> b, TreeMap::new));
         System.out.print("{");
         final String last = sorted.lastKey();
         sorted.forEach((s, k) -> {
@@ -209,6 +223,11 @@ public class CalculateAverage_alexeyshurygin {
                 System.out.print(", ");
         });
         System.out.println("}");
+    }
+
+    private static String wrapperToString(ArrayWrapper k) {
+        // inline
+        return new String(k.a, 0, k.length, Charset.forName("UTF-8"));
     }
 
     public static void main(String[] args) throws IOException {

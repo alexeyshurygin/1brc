@@ -18,14 +18,15 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <groupId>dev.morling.demos</groupId>
   <artifactId>average</artifactId>
   <version>1.0.0-SNAPSHOT</version>
-  
+
   <properties>
     <maven.compiler.parameters>true</maven.compiler.parameters>
-    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
@@ -111,6 +112,8 @@
               <compilerArg>--enable-preview</compilerArg>
               <compilerArg>--add-modules</compilerArg>
               <compilerArg>java.base,jdk.incubator.vector</compilerArg>
+              <compilerArg>--add-exports</compilerArg>
+              <compilerArg>java.base/jdk.internal.util=ALL-UNNAMED</compilerArg>
             </compilerArgs>
           </configuration>
         </plugin>
@@ -254,7 +257,7 @@
                 <configuration>
                   <rules>
                     <requireJavaVersion>
-                      <version>${maven.compiler.release}</version>
+                      <version>21</version>
                     </requireJavaVersion>
                     <requirePluginVersions>
                        <banLatest>true</banLatest>
