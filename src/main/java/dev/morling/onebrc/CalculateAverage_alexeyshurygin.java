@@ -19,12 +19,17 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.min;
@@ -32,7 +37,7 @@ import static java.nio.file.Files.lines;
 
 public class CalculateAverage_alexeyshurygin {
 
-    private static final String FILE = "./measurements_short.txt";
+    private static final String FILE = "./measurements.txt";
 
     private static void readCharFile(String filename) throws IOException {
         try (var channel = FileChannel.open(Path.of(filename))) {
@@ -42,11 +47,12 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize).asCharBuffer();
-                for (int i = 0; i < buf.remaining(); ) {
+                for (int i = 0; i < buf.remaining();) {
                     if (buf.remaining() >= chars.length) {
                         buf.get(chars, 0, chars.length);
                         i += chars.length;
-                    } else {
+                    }
+                    else {
                         var chars1 = new char[buf.remaining()];
                         buf.get(chars1, 0, chars1.length);
                         i += chars1.length;
@@ -65,11 +71,12 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize);
-                for (int i = 0; i < buf.remaining(); ) {
+                for (int i = 0; i < buf.remaining();) {
                     if (buf.remaining() >= bytes.length) {
                         buf.get(bytes, 0, bytes.length);
                         i += bytes.length;
-                    } else {
+                    }
+                    else {
                         var bytes1 = new byte[buf.remaining()];
                         buf.get(bytes1, 0, bytes1.length);
                         i += bytes1.length;
@@ -92,8 +99,8 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void readFileSimple(String filename) throws IOException {
         lines(Paths.get(filename))
-            .forEach(s -> {
-            });
+                .forEach(s -> {
+                });
     }
 
     private static void readIOFile(String filename) throws IOException {
@@ -121,7 +128,6 @@ public class CalculateAverage_alexeyshurygin {
                         }
                         case '-' -> neg = -1;
                         case '\n' -> {
-                            //todo do stuff here
                             temp *= neg;
                             final byte[] key = Arrays.copyOf(nameBuf, bi);
                             mean.merge(key, (double) temp, Double::sum);
@@ -133,13 +139,14 @@ public class CalculateAverage_alexeyshurygin {
                             l++;
                             neg = 1;
                         }
-//                    case '\r' -> l++;
-//                    case '.' -> {
-//                    }
+                        // case '\r' -> l++;
+                        // case '.' -> {
+                        // }
                         default -> {
                             if (pastSemi) {
                                 temp = temp * 10 + b - '0';
-                            } else {
+                            }
+                            else {
                                 nameBuf[bi++] = (byte) b;
                             }
                         }
@@ -152,19 +159,23 @@ public class CalculateAverage_alexeyshurygin {
     }
 
     private static void printResults(Map<byte[], Integer> min, Map<byte[], Integer> max, Map<byte[], Double> mean, Map<byte[], Integer> count) {
+        final SortedMap<String, byte[]> sorted = min.keySet().stream()
+                .collect(Collectors.toMap(k -> new String(k, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
         System.out.print("{");
-        min.keySet().stream().sorted().forEach(
-            k -> {
-                System.out.print(k);
-                System.out.print("=");
-                System.out.print((((double) min.get(k))) / 10);
-                System.out.print("/");
-                System.out.print(((mean.get(k) / count.get(k))) / 10);
-                System.out.print("/");
-                System.out.print((((double) max.get(k))) / 10);
-            }
-        );
-        System.out.print("}");
+        final String last = sorted.lastKey();
+        sorted.forEach((s, k) -> {
+            System.out.print(s);
+            System.out.print("=");
+            System.out.print((((double) min.get(k))) / 10);
+            System.out.print("/");
+            System.out.print(((mean.get(k) / count.get(k))) / 10);
+            System.out.print("/");
+            System.out.print((((double) max.get(k))) / 10);
+            System.out.print("/");
+            if (last != s)
+                System.out.print(", ");
+        });
+        System.out.println("}");
     }
 
     public static void main(String[] args) throws IOException {
