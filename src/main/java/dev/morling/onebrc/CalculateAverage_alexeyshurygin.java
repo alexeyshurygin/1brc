@@ -103,11 +103,42 @@ public class CalculateAverage_alexeyshurygin {
                 });
     }
 
+    static class ArrayWrapper {
+
+        byte[] a;
+
+        public ArrayWrapper() {
+        }
+
+        public ArrayWrapper(byte[] a) {
+            this.a = a;
+        }
+
+        void setArray(byte[] a) {
+            this.a = a;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            final ArrayWrapper that = (ArrayWrapper) o;
+            return Arrays.equals(a, that.a);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(a);
+        }
+    }
+
     private static void readIOFile(String filename) throws IOException {
-        Map<byte[], Double> mean = new HashMap<>();
-        Map<byte[], Integer> min = new HashMap<>();
-        Map<byte[], Integer> max = new HashMap<>();
-        Map<byte[], Integer> count = new HashMap<>();
+        Map<ArrayWrapper, Double> mean = new HashMap<>();
+        Map<ArrayWrapper, Integer> min = new HashMap<>();
+        Map<ArrayWrapper, Integer> max = new HashMap<>();
+        Map<ArrayWrapper, Integer> count = new HashMap<>();
         try (var is = new FileInputStream(filename)) {
             int neg = 1;
             int l = 0;
@@ -118,6 +149,7 @@ public class CalculateAverage_alexeyshurygin {
             int read;
             byte[] nameBuf = new byte[100];
             boolean pastSemi = false;
+            var key = new ArrayWrapper();
             while ((read = is.read(buf)) != -1) {
                 for (int pos = 0; pos < read; pos++) {
                     int b = buf[pos];
@@ -129,11 +161,14 @@ public class CalculateAverage_alexeyshurygin {
                         case '-' -> neg = -1;
                         case '\n' -> {
                             temp *= neg;
-                            final byte[] key = Arrays.copyOf(nameBuf, bi);
+                            key.setArray(Arrays.copyOf(nameBuf, bi));
+                            final var c = count.merge(key, 1, Integer::sum);
                             mean.merge(key, (double) temp, Double::sum);
                             min.merge(key, temp, Integer::min);
                             max.merge(key, temp, Integer::max);
-                            count.merge(key, 1, Integer::sum);
+                            if (c == 1) {
+                                key = new ArrayWrapper();
+                            }
                             bi = 0;
                             pastSemi = false;
                             l++;
@@ -153,14 +188,15 @@ public class CalculateAverage_alexeyshurygin {
                     }
                     i++;
                 }
+                // System.out.println("Lines:" + l + ", keys:" + count.size());
             }
         }
         printResults(min, max, mean, count);
     }
 
-    private static void printResults(Map<byte[], Integer> min, Map<byte[], Integer> max, Map<byte[], Double> mean, Map<byte[], Integer> count) {
-        final SortedMap<String, byte[]> sorted = min.keySet().stream()
-                .collect(Collectors.toMap(k -> new String(k, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
+    private static void printResults(Map<ArrayWrapper, Integer> min, Map<ArrayWrapper, Integer> max, Map<ArrayWrapper, Double> mean, Map<ArrayWrapper, Integer> count) {
+        final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream()
+                .collect(Collectors.toMap(k -> new String(k.a, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
         System.out.print("{");
         final String last = sorted.lastKey();
         sorted.forEach((s, k) -> {
