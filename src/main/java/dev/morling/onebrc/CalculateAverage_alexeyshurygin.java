@@ -37,7 +37,7 @@ import static java.nio.file.Files.lines;
 
 public class CalculateAverage_alexeyshurygin {
 
-    private static final String FILE = "./measurements.txt";
+    private static final String FILE = "./measurements_short.txt";
 
     private static void readCharFile(String filename) throws IOException {
         try (var channel = FileChannel.open(Path.of(filename))) {
@@ -143,7 +143,7 @@ public class CalculateAverage_alexeyshurygin {
             int temp = 0;
             int i = 0;
             int bi = 0;
-            byte[] buf = new byte[1024 * 1024];
+            byte[] buf = new byte[4*1024];
             int read;
             byte[] nameBuf = new byte[100];
             boolean pastSemi = false;
