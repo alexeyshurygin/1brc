@@ -26,7 +26,7 @@ import java.util.stream.Collector;
 
 public class CalculateAverage {
 
-    private static final String FILE = "./measurements_short.txt";
+    private static final String FILE = "./measurements.txt";
 
     private static record Measurement(String station, double value) {
         private Measurement(String[] parts) {
