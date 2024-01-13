@@ -49,11 +49,12 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize).asCharBuffer();
-                for (int i = 0; i < buf.remaining(); ) {
+                for (int i = 0; i < buf.remaining();) {
                     if (buf.remaining() >= chars.length) {
                         buf.get(chars, 0, chars.length);
                         i += chars.length;
-                    } else {
+                    }
+                    else {
                         var chars1 = new char[buf.remaining()];
                         buf.get(chars1, 0, chars1.length);
                         i += chars1.length;
@@ -72,11 +73,12 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize);
-                for (int i = 0; i < buf.remaining(); ) {
+                for (int i = 0; i < buf.remaining();) {
                     if (buf.remaining() >= bytes.length) {
                         buf.get(bytes, 0, bytes.length);
                         i += bytes.length;
-                    } else {
+                    }
+                    else {
                         var bytes1 = new byte[buf.remaining()];
                         buf.get(bytes1, 0, bytes1.length);
                         i += bytes1.length;
@@ -99,8 +101,8 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void readFileSimple(String filename) throws IOException {
         lines(Paths.get(filename))
-            .forEach(s -> {
-            });
+                .forEach(s -> {
+                });
     }
 
     private static void readIOFile(String filename) throws IOException {
@@ -152,7 +154,8 @@ public class CalculateAverage_alexeyshurygin {
                         default -> {
                             if (!pastSemi) {
                                 nameBuf[nameLength++] = (byte) b;
-                            } else {
+                            }
+                            else {
                                 temp = temp * 10 + b - '0';
                             }
                         }
@@ -167,7 +170,7 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void printResults(Map<ArrayWrapper, Integer> min, Map<ArrayWrapper, Integer> max, Map<ArrayWrapper, Double> mean, Map<ArrayWrapper, Integer> count) {
         final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream()
-            .collect(Collectors.toMap(k -> new String(k.a, 0, k.length, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
+                .collect(Collectors.toMap(k -> new String(k.a, 0, k.length, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
         System.out.print("{");
         final String last = sorted.lastKey();
         sorted.forEach((s, k) -> {
@@ -178,7 +181,6 @@ public class CalculateAverage_alexeyshurygin {
             System.out.print((double) Math.round(mean.get(k) / count.get(k)) / 10);
             System.out.print("/");
             System.out.print((double) max.get(k) / 10);
-            System.out.print("/");
             if (last != s)
                 System.out.print(", ");
         });
@@ -194,7 +196,7 @@ public class CalculateAverage_alexeyshurygin {
         readIOFile(file);
         // readFRFile(FILE);
         long e = System.currentTimeMillis();
-        System.out.println("Time: " + (e - s) + " ms");
+        // System.out.println("Time: " + (e - s) + " ms");
     }
 
     static class ArrayWrapper {
