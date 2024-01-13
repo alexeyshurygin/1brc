@@ -129,7 +129,6 @@ public class CalculateAverage_alexeyshurygin {
                             temp = 0;
                             pastSemi = true;
                         }
-                        case '-' -> neg = -1;
                         case '\n' -> {
                             if (nameLength > 0) {
                                 temp *= neg;
@@ -156,7 +155,10 @@ public class CalculateAverage_alexeyshurygin {
                                 nameBuf[nameLength++] = (byte) b;
                             }
                             else {
-                                temp = temp * 10 + b - '0';
+                                if (b == '-')
+                                    neg = -1;
+                                else
+                                    temp = temp * 10 + b - '0';
                             }
                         }
                     }
