@@ -17,4 +17,4 @@
 
 
 JAVA_OPTS="--add-opens java.base/jdk.internal.util=ALL-UNNAMED"
-time java $JAVA_OPTS --class-path target/average-1.0.0-SNAPSHOT.jar dev.morling.onebrc.CalculateAverage_alexeyshurygin
+time java $JAVA_OPTS --class-path target/average-1.0.0-SNAPSHOT.jar dev.morling.onebrc.CalculateAverage_alexeyshurygin $*
