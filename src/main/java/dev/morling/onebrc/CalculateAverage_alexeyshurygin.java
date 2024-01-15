@@ -30,7 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.min;
@@ -49,12 +52,11 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize).asCharBuffer();
-                for (int i = 0; i < buf.remaining();) {
+                for (int i = 0; i < buf.remaining(); ) {
                     if (buf.remaining() >= chars.length) {
                         buf.get(chars, 0, chars.length);
                         i += chars.length;
-                    }
-                    else {
+                    } else {
                         var chars1 = new char[buf.remaining()];
                         buf.get(chars1, 0, chars1.length);
                         i += chars1.length;
@@ -73,12 +75,11 @@ public class CalculateAverage_alexeyshurygin {
             while (used != size) {
                 var thisSize = min(size - used, MAX_VALUE);
                 var buf = channel.map(FileChannel.MapMode.READ_ONLY, used, thisSize);
-                for (int i = 0; i < buf.remaining();) {
+                for (int i = 0; i < buf.remaining(); ) {
                     if (buf.remaining() >= bytes.length) {
                         buf.get(bytes, 0, bytes.length);
                         i += bytes.length;
-                    }
-                    else {
+                    } else {
                         var bytes1 = new byte[buf.remaining()];
                         buf.get(bytes1, 0, bytes1.length);
                         i += bytes1.length;
@@ -101,70 +102,95 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void readFileSimple(String filename) throws IOException {
         lines(Paths.get(filename))
-                .forEach(s -> {
-                });
+            .forEach(s -> {
+            });
     }
 
-    private static void readIOFile(String filename) throws IOException {
+    private static void processWithIO(String filename) throws InterruptedException {
+        final var n = Runtime.getRuntime().availableProcessors();
+        CountDownLatch done = new CountDownLatch(n);
+        final var executor = Executors.newFixedThreadPool(n);
+        IntStream.range(0, n).forEach(
+            i ->
+                executor.submit(() -> {
+                    try {
+                        processPart(i, n, filename);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    done.countDown();
+                })
+        );
+        done.await();
+    }
+
+    private static void processPart(int partNumber, int numParts, String filename) throws IOException {
         Map<ArrayWrapper, Double> mean = new HashMap<>();
         Map<ArrayWrapper, Integer> min = new HashMap<>();
         Map<ArrayWrapper, Integer> max = new HashMap<>();
         Map<ArrayWrapper, Integer> count = new HashMap<>();
-        try (var is = new FileInputStream(filename)) {
-            int neg = 1;
-            int l = 0;
-            int temp = 0;
-            int i = 0;
-            int nameLength = 0;
-            byte[] buf = new byte[4 * 1024];
-            int read;
-            byte[] nameBuf = new byte[MAX_NAME];
-            boolean pastSemi = false;
-            var key = new ArrayWrapper(nameBuf);
-            while ((read = is.read(buf)) != -1) {
-                for (int pos = 0; pos < read; pos++) {
-                    int b = buf[pos];
-                    switch (b) {
-                        case ';' -> {
-                            temp = 0;
-                            pastSemi = true;
-                        }
-                        case '\n' -> {
-                            if (nameLength > 0) {
-                                temp *= neg;
-                                key.setLength(nameLength);
-                                final var c = count.merge(key, 1, Integer::sum);
-                                mean.merge(key, (double) temp, Double::sum);
-                                min.merge(key, temp, Integer::min);
-                                max.merge(key, temp, Integer::max);
-                                if (c == 1) {
-                                    nameBuf = new byte[MAX_NAME];
-                                    key = new ArrayWrapper(nameBuf);
+        try (var channel = FileChannel.open(Path.of(filename))) {
+            final var size = channel.size();
+            final var seekStart = (partNumber * size) / numParts;
+            final var seekEnd = ((partNumber + 1) * size) / numParts;
+
+            try (var is = new FileInputStream(filename)) {
+                var seek = seekStart;
+
+                int neg = 1;
+                int l = 0;
+                int temp = 0;
+                int i = 0;
+                int nameLength = 0;
+                byte[] buf = new byte[4 * 1024];
+                int read;
+                byte[] nameBuf = new byte[MAX_NAME];
+                boolean pastSemi = false;
+                var key = new ArrayWrapper(nameBuf);
+                while ((read = is.read(buf)) != -1) {
+                    for (int pos = 0; pos < read; pos++) {
+                        int b = buf[pos];
+                        switch (b) {
+                            case ';' -> {
+                                temp = 0;
+                                pastSemi = true;
+                            }
+                            case '\n' -> {
+                                if (nameLength > 0) {
+                                    temp *= neg;
+                                    key.setLength(nameLength);
+                                    final var c = count.merge(key, 1, Integer::sum);
+                                    mean.merge(key, (double) temp, Double::sum);
+                                    min.merge(key, temp, Integer::min);
+                                    max.merge(key, temp, Integer::max);
+                                    if (c == 1) {
+                                        nameBuf = new byte[MAX_NAME];
+                                        key = new ArrayWrapper(nameBuf);
+                                    }
+                                    nameLength = 0;
                                 }
-                                nameLength = 0;
+                                pastSemi = false;
+                                l++;
+                                neg = 1;
                             }
-                            pastSemi = false;
-                            l++;
-                            neg = 1;
-                        }
-                        // case '\r' -> l++;
-                        case '.' -> {
-                        }
-                        default -> {
-                            if (!pastSemi) {
-                                nameBuf[nameLength++] = (byte) b;
+                            // case '\r' -> l++;
+                            case '.' -> {
                             }
-                            else {
-                                if (b == '-')
-                                    neg = -1;
-                                else
-                                    temp = temp * 10 + b - '0';
+                            default -> {
+                                if (!pastSemi) {
+                                    nameBuf[nameLength++] = (byte) b;
+                                } else {
+                                    if (b == '-')
+                                        neg = -1;
+                                    else
+                                        temp = temp * 10 + b - '0';
+                                }
                             }
                         }
+                        i++;
                     }
-                    i++;
+                    // System.out.println("Lines:" + l + ", keys:" + count.size());
                 }
-                // System.out.println("Lines:" + l + ", keys:" + count.size());
             }
         }
         printResults(min, max, mean, count);
@@ -172,7 +198,7 @@ public class CalculateAverage_alexeyshurygin {
 
     private static void printResults(Map<ArrayWrapper, Integer> min, Map<ArrayWrapper, Integer> max, Map<ArrayWrapper, Double> mean, Map<ArrayWrapper, Integer> count) {
         final SortedMap<String, ArrayWrapper> sorted = min.keySet().stream()
-                .collect(Collectors.toMap(k -> new String(k.a, 0, k.length, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
+            .collect(Collectors.toMap(k -> new String(k.a, 0, k.length, Charset.forName("UTF-8")), k -> k, (a, b) -> b, TreeMap::new));
         System.out.print("{");
         final String last = sorted.lastKey();
         sorted.forEach((s, k) -> {
@@ -192,7 +218,7 @@ public class CalculateAverage_alexeyshurygin {
     public static void main(String[] args) throws IOException {
         long s = System.currentTimeMillis();
         final var file = args.length > 0 ? args[0] : FILE;
-        readIOFile(file);
+        processWithIO(file);
         long e = System.currentTimeMillis();
         System.out.println("Time: " + (e - s) + " ms");
     }
